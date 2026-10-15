@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: rag-postgres
+    environment:
+      POSTGRES_USER: raguser
+      POSTGRES_PASSWORD: ragpass
+      POSTGRES_DB: ragdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U raguser -d ragdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rag-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:5000"
+      ConnectionStrings__Default: "Host=postgres;Port=5432;Database=ragdb;Username=raguser;Password=ragpass"
+      Ollama__BaseUrl: "http://host.docker.internal:11434"
+      Ollama__EmbeddingModel: "nomic-embed-text"
+      Ollama__ChatModel: "qwen3:4b"
+      Jwt__Key: "this-is-a-very-long-secret-key-for-signing-jwt-tokens-at-least-64-characters-long"
+      Jwt__Issuer: "RagApp"
+      Jwt__Audience: "RagAppClient"
+      Jwt__ExpiresMinutes: "120"
+      FileStorage__RootPath: "/app/storage"
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./storage:/app/storage
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  pgdata:
