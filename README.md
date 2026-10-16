@@ -18,7 +18,7 @@ A fully local, free Retrieval-Augmented Generation (RAG) application. Upload PDF
 - ASP.NET Core 10 Web API
 - Entity Framework Core 10 + Npgsql
 - MediatR (CQRS)
-- JWT authentication + BCrypt
+- JWT authentication in HttpOnly cookies + BCrypt
 - PdfPig (PDF text extraction)
 
 **AI (Local, Free)**
@@ -50,6 +50,14 @@ A fully local, free Retrieval-Augmented Generation (RAG) application. Upload PDF
 1. **Upload**: PDF → text extraction (PdfPig) → chunking (1000 chars, 200 overlap) → embeddings (Ollama) → stored in PostgreSQL with pgvector
 2. **Query**: question → embedding → cosine similarity search in pgvector (top 5, filtered by user) → context assembled → sent to local LLM → answer + sources returned
 3. **Isolation**: every query is scoped to the authenticated user's documents only
+
+## Security
+
+- JWT tokens stored in HttpOnly cookies, inaccessible from JavaScript (XSS protection)
+- SameSite=Strict policy (CSRF protection)
+- Secure flag enabled in production (HTTPS only)
+- BCrypt password hashing
+- Every query scoped to the authenticated user's documents
 
 ## Prerequisites
 
@@ -244,17 +252,3 @@ Check Ollama status:
 ollama ps
 curl http://localhost:11434/api/tags
 ```
-
-## Troubleshooting
-
-**Backend can't reach Ollama**: check `netstat -ano | findstr :11434` shows `0.0.0.0:11434`. If it shows `127.0.0.1`, set `OLLAMA_HOST=0.0.0.0:11434` and restart Ollama.
-
-**502 Bad Gateway from Vite**: backend not running. Check `docker compose ps`. Verify `vite.config.ts` proxy target is `http://127.0.0.1:5000`.
-
-**Password authentication failed for user "raguser"**: the PostgreSQL volume was initialized with a different password. Reset with `docker compose down -v` then `docker compose up -d`.
-
-**"relation does not exist"**: migrations not applied. Run `Update-Database` in Package Manager Console.
-
-**Indexing is very slow**: check `ollama ps` - if shows `100% CPU`, no GPU acceleration. Consider smaller chat model (`qwen2.5:1.5b`) or fewer chunks.
-
-**Answer is "I could not find that answer"**: the context didn't contain the answer. Rephrase the question, ask in the same language as the document, or increase top-K in `AskQuestionHandler`.
