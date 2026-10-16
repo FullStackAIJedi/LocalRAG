@@ -15,13 +15,9 @@
     [Authorize]
     public class ProfileController : ControllerBase
     {
-        private readonly IMediator _mediator;
+        private readonly IMediator _mediator; 
+        public ProfileController(IMediator mediator) => _mediator = mediator;
 
-        public ProfileController(IMediator mediator)
-        {
-            _mediator = mediator;
-        }
-         
         private Guid GetUserId()
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -33,9 +29,8 @@
         public async Task<IActionResult> GetMyProfile()
         {
             try
-            {
-                var profile = await _mediator.Send(new GetProfileQuery(GetUserId()));
-                return Ok(profile);
+            { 
+                return Ok(await _mediator.Send(new GetProfileQuery(GetUserId())));
             }
             catch (KeyNotFoundException ex)
             {

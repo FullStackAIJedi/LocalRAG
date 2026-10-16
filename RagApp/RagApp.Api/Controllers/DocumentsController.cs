@@ -43,13 +43,13 @@
         public async Task<IActionResult> Upload(IFormFile file)
         { 
             if (file == null || file.Length == 0)
-                return BadRequest(new { error = "Не е избран файл." });
+                return BadRequest(new { error = "No file selected." });
 
             if (!file.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
-                return BadRequest(new { error = "Позволени са само PDF файлове." });
+                return BadRequest(new { error = "Only PDF files are allowed." });
 
             if (file.Length > MaxFileSize)
-                return BadRequest(new { error = "Файлът е твърде голям (максимум 50 MB)." });
+                return BadRequest(new { error = "The file is too large (maximum 50 MB)." });
 
             try
             { 

@@ -15,13 +15,9 @@
     [Authorize]
     public class AskController : ControllerBase
     {
-        private readonly IMediator _mediator;
-
-        public AskController(IMediator mediator)
-        {
-            _mediator = mediator;
-        }
-
+        private readonly IMediator _mediator; 
+        public AskController(IMediator mediator) =>  _mediator = mediator;
+        
         private Guid GetUserId()
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -31,8 +27,7 @@
         // POST /api/ask
         [HttpPost]
         public async Task<IActionResult> Ask([FromBody] AskRequest req)
-        {
-            // Валидация на въпроса.
+        { 
             if (string.IsNullOrWhiteSpace(req.Question))
                 return BadRequest(new { error = "The question cannot be empty." });
 
