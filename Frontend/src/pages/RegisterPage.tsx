@@ -1,15 +1,13 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-
 import { Link, useNavigate } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
-import { register } from "../api/endpoints";
+import { useRegister } from "../hooks/useAuthMutations";
 import type { RegisterRequest } from "../api/types";
+import AvatarCircle from "../components/AvatarCircle";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
   const [error, setError] = useState("");
-
   const [form, setForm] = useState<RegisterRequest>({
     nickname: "",
     email: "",
@@ -23,20 +21,18 @@ export default function RegisterPage() {
     city: "",
   });
 
-  const registerMutation = useMutation({
-    mutationFn: register,
-    onSuccess: () => {
-      navigate("/login");
-    },
-    onError: (err: any) => {
-      setError(err.response?.data?.error || "Registration failed.");
-    },
-  });
+  const registerMutation = useRegister();
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
-    registerMutation.mutate(form);
+
+    try {
+      await registerMutation.mutateAsync(form);
+      navigate("/login");
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Registration failed.");
+    }
   };
 
   const update = (field: keyof RegisterRequest, value: any) => {
@@ -44,28 +40,34 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card auth-card-wide">
+    <div className="auth-container-register">
+      <div className="auth-card-register">
         <h1>Register</h1>
+
+        <AvatarCircle
+          imageUrl={form.avatarUrl || undefined}
+          fallbackText={form.nickname}
+        />
+
         <form onSubmit={handleSubmit}>
-          <div className="form-row">
-            <div className="form-group">
-              <label>Nickname</label>
-              <input
-                value={form.nickname}
-                onChange={(e) => update("nickname", e.target.value)}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Email</label>
-              <input
-                type="email"
-                value={form.email}
-                onChange={(e) => update("email", e.target.value)}
-                required
-              />
-            </div>
+          {/* Single column layout */}
+          <div className="form-group">
+            <label>Nickname</label>
+            <input
+              value={form.nickname}
+              onChange={(e) => update("nickname", e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Email</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => update("email", e.target.value)}
+              required
+            />
           </div>
 
           <div className="form-group">
@@ -87,46 +89,45 @@ export default function RegisterPage() {
             />
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label>First Name</label>
-              <input
-                value={form.firstName}
-                onChange={(e) => update("firstName", e.target.value)}
-              />
-            </div>
-            <div className="form-group">
-              <label>Last Name</label>
-              <input
-                value={form.lastName}
-                onChange={(e) => update("lastName", e.target.value)}
-              />
-            </div>
+          <div className="form-group">
+            <label>First Name</label>
+            <input
+              value={form.firstName}
+              onChange={(e) => update("firstName", e.target.value)}
+            />
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label>Age</label>
-              <input
-                type="number"
-                value={form.age || ""}
-                onChange={(e) => update("age", parseInt(e.target.value) || 0)}
-              />
-            </div>
-            <div className="form-group">
-              <label>Country</label>
-              <input
-                value={form.country}
-                onChange={(e) => update("country", e.target.value)}
-              />
-            </div>
-            <div className="form-group">
-              <label>City</label>
-              <input
-                value={form.city}
-                onChange={(e) => update("city", e.target.value)}
-              />
-            </div>
+          <div className="form-group">
+            <label>Last Name</label>
+            <input
+              value={form.lastName}
+              onChange={(e) => update("lastName", e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Age</label>
+            <input
+              type="number"
+              value={form.age || ""}
+              onChange={(e) => update("age", parseInt(e.target.value) || 0)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Country</label>
+            <input
+              value={form.country}
+              onChange={(e) => update("country", e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>City</label>
+            <input
+              value={form.city}
+              onChange={(e) => update("city", e.target.value)}
+            />
           </div>
 
           <div className="form-group">

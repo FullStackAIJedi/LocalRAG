@@ -16,9 +16,12 @@ export async function register(
   return response.data;
 }
 
-export async function login(data: LoginRequest): Promise<{ token: string }> {
-  const response = await apiClient.post("/auth/login", data);
-  return response.data;
+export async function login(data: LoginRequest): Promise<void> {
+  await apiClient.post("/auth/login", data);
+}
+
+export async function logout(): Promise<void> {
+  await apiClient.post("/auth/logout");
 }
 
 export async function getMyProfile(): Promise<UserProfile> {

@@ -1,25 +1,11 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { useAuth } from "./context/AuthContext";
 import LoginPage from "../src/pages/LoginPage";
 import RegisterPage from "../src/pages/RegisterPage";
 import ProfilePage from "../src/pages/ProfilePage";
 import EditProfilePage from "../src/pages/EditProfilePage";
 import SearchPage from "../src/pages/SearchPage";
 import Layout from "../src/components/Layout";
-
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { token, isLoading } = useAuth();
-
-  if (isLoading) {
-    return <div className="loading">Зареждане...</div>;
-  }
-
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
-}
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (

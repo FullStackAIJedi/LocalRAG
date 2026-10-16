@@ -1,61 +1,66 @@
-import { createContext, useContext, useState, useEffect } from "react";
-
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import type { ReactNode } from "react";
-
+import { useQueryClient } from "@tanstack/react-query";
 import type { UserProfile } from "../api/types";
 import { getMyProfile } from "../api/endpoints";
+import { queryKeys } from "../hooks/queryKeys";
 
 interface AuthContextType {
-  token: string | null;
   user: UserProfile | null;
+  isAuthenticated: boolean;
   isLoading: boolean;
-  login: (token: string) => void;
-  logout: () => void;
+  login: () => Promise<void>;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(() =>
-    localStorage.getItem("token"),
-  );
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (token) {
-      getMyProfile()
-        .then(setUser)
-        .catch(() => {
-          localStorage.removeItem("token");
-          setToken(null);
-        })
-        .finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
-    }
-  }, [token]);
+    getMyProfile()
+      .then(setUser)
+      .catch(() => setUser(null))
+      .finally(() => setIsLoading(false));
+  }, []);
 
-  const login = (newToken: string) => {
-    localStorage.setItem("token", newToken);
-    setToken(newToken);
-  };
-
-  const logout = () => {
-    localStorage.removeItem("token");
-    setToken(null);
-    setUser(null);
-  };
-
-  const refreshUser = async () => {
+  const login = useCallback(async () => {
     const profile = await getMyProfile();
     setUser(profile);
-  };
+    queryClient.setQueryData(queryKeys.profile.me, profile);
+  }, [queryClient]);
+
+  const logout = useCallback(async () => {
+    setUser(null);
+    queryClient.clear();
+  }, [queryClient]);
+
+  const refreshUser = useCallback(async () => {
+    const profile = await getMyProfile();
+    setUser(profile);
+    queryClient.setQueryData(queryKeys.profile.me, profile);
+  }, [queryClient]);
 
   return (
     <AuthContext.Provider
-      value={{ token, user, isLoading, login, logout, refreshUser }}
+      value={{
+        user,
+        isAuthenticated: user !== null,
+        isLoading,
+        login,
+        logout,
+        refreshUser,
+      }}
     >
       {children}
     </AuthContext.Provider>
@@ -65,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be in AuthProvider");
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }

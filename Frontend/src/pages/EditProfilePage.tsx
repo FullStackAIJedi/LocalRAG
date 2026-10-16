@@ -1,22 +1,19 @@
 import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getMyProfile, updateMyProfile } from "../api/endpoints";
-import type { UpdateProfileRequest } from "../api/types";
+import { useProfile, useUpdateProfile } from "../hooks/useProfile";
 import { useAuth } from "../context/AuthContext";
+import type { UpdateProfileRequest } from "../api/types";
+import AvatarCircle from "../components/AvatarCircle";
 
 export default function EditProfilePage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { refreshUser } = useAuth();
   const [error, setError] = useState("");
   const [form, setForm] = useState<UpdateProfileRequest>({});
 
-  const { data: profile, isLoading } = useQuery({
-    queryKey: ["myProfile"],
-    queryFn: getMyProfile,
-  });
+  const { data: profile, isLoading } = useProfile();
+  const updateMutation = useUpdateProfile();
 
   useEffect(() => {
     if (profile) {
@@ -33,22 +30,17 @@ export default function EditProfilePage() {
     }
   }, [profile]);
 
-  const updateMutation = useMutation({
-    mutationFn: updateMyProfile,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["myProfile"] });
-      await refreshUser();
-      navigate("/profile");
-    },
-    onError: (err: any) => {
-      setError(err.response?.data?.error || "Failed to update profile.");
-    },
-  });
-
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
-    updateMutation.mutate(form);
+
+    try {
+      await updateMutation.mutateAsync(form);
+      await refreshUser();
+      navigate("/profile");
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Failed to update profile.");
+    }
   };
 
   const update = (field: keyof UpdateProfileRequest, value: any) => {
@@ -60,7 +52,13 @@ export default function EditProfilePage() {
   return (
     <div className="edit-profile-page">
       <h1>Edit Profile</h1>
-      <form onSubmit={handleSubmit} className="edit-form">
+
+      <AvatarCircle
+        imageUrl={form.avatarUrl || undefined}
+        fallbackText={form.nickname}
+      />
+
+      <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label>Nickname</label>
           <input
@@ -77,46 +75,45 @@ export default function EditProfilePage() {
           />
         </div>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label>First Name</label>
-            <input
-              value={form.firstName || ""}
-              onChange={(e) => update("firstName", e.target.value)}
-            />
-          </div>
-          <div className="form-group">
-            <label>Last Name</label>
-            <input
-              value={form.lastName || ""}
-              onChange={(e) => update("lastName", e.target.value)}
-            />
-          </div>
+        <div className="form-group">
+          <label>First Name</label>
+          <input
+            value={form.firstName || ""}
+            onChange={(e) => update("firstName", e.target.value)}
+          />
         </div>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label>Age</label>
-            <input
-              type="number"
-              value={form.age || ""}
-              onChange={(e) => update("age", parseInt(e.target.value) || 0)}
-            />
-          </div>
-          <div className="form-group">
-            <label>Country</label>
-            <input
-              value={form.country || ""}
-              onChange={(e) => update("country", e.target.value)}
-            />
-          </div>
-          <div className="form-group">
-            <label>City</label>
-            <input
-              value={form.city || ""}
-              onChange={(e) => update("city", e.target.value)}
-            />
-          </div>
+        <div className="form-group">
+          <label>Last Name</label>
+          <input
+            value={form.lastName || ""}
+            onChange={(e) => update("lastName", e.target.value)}
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Age</label>
+          <input
+            type="number"
+            value={form.age || ""}
+            onChange={(e) => update("age", parseInt(e.target.value) || 0)}
+          />
+        </div>
+
+        <div className="form-group">
+          <label>Country</label>
+          <input
+            value={form.country || ""}
+            onChange={(e) => update("country", e.target.value)}
+          />
+        </div>
+
+        <div className="form-group">
+          <label>City</label>
+          <input
+            value={form.city || ""}
+            onChange={(e) => update("city", e.target.value)}
+          />
         </div>
 
         <div className="form-group">

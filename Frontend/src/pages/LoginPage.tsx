@@ -1,9 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-
 import { Link, useNavigate } from "react-router-dom";
-import { useMutation } from "@tanstack/react-query";
-import { login } from "../api/endpoints";
+import { useLogin } from "../hooks/useAuthMutations";
 import { useAuth } from "../context/AuthContext";
 
 export default function LoginPage() {
@@ -11,24 +9,21 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const { login: setAuthToken } = useAuth();
+  const { refreshUser } = useAuth();
   const navigate = useNavigate();
+  const loginMutation = useLogin();
 
-  const loginMutation = useMutation({
-    mutationFn: login,
-    onSuccess: (data) => {
-      setAuthToken(data.token);
-      navigate("/search");
-    },
-    onError: (err: any) => {
-      setError(err.response?.data?.error || "Login failed.");
-    },
-  });
-
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
-    loginMutation.mutate({ email, password });
+
+    try {
+      await loginMutation.mutateAsync({ email, password });
+      await refreshUser();
+      navigate("/search");
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Login failed.");
+    }
   };
 
   return (

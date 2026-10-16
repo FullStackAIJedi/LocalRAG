@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import type { FormEvent } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getMyDocuments, uploadDocument, askQuestion } from "../api/endpoints";
+import { useMyDocuments, useUploadDocument } from "../hooks/useDocuments";
+import { useAskQuestion } from "../hooks/useAskQuestion";
 import type { AskResponse } from "../api/types";
 
 export default function SearchPage() {
@@ -13,54 +13,43 @@ export default function SearchPage() {
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const queryClient = useQueryClient();
 
-  const { data: documents = [] } = useQuery({
-    queryKey: ["myDocuments"],
-    queryFn: getMyDocuments,
-  });
+  const { data: documents = [] } = useMyDocuments();
+  const uploadMutation = useUploadDocument();
+  const askMutation = useAskQuestion();
 
-  const uploadMutation = useMutation({
-    mutationFn: uploadDocument,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["myDocuments"] });
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setError("");
+    try {
+      await uploadMutation.mutateAsync(file);
       if (fileInputRef.current) fileInputRef.current.value = "";
       setShowUpload(false);
-    },
-    onError: (err: any) => {
+    } catch (err: any) {
       setError(err.response?.data?.error || "Upload failed.");
-    },
-  });
-
-  const askMutation = useMutation({
-    mutationFn: askQuestion,
-    onSuccess: (data) => {
-      setResponse(data);
-      setError("");
-    },
-    onError: (err: any) => {
-      setError(err.response?.data?.error || "Search failed.");
-      setResponse(null);
-    },
-  });
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      uploadMutation.mutate(file);
     }
   };
 
-  const handleAsk = (e: FormEvent) => {
+  const handleAsk = async (e: FormEvent) => {
     e.preventDefault();
     if (!question.trim()) return;
 
     setError("");
-
     const docIds =
       selectDocuments && selectedDocIds.length > 0 ? selectedDocIds : null;
 
-    askMutation.mutate({ question, documentIds: docIds });
+    try {
+      const data = await askMutation.mutateAsync({
+        question,
+        documentIds: docIds,
+      });
+      setResponse(data);
+    } catch (err: any) {
+      setError(err.response?.data?.error || "Search failed.");
+      setResponse(null);
+    }
   };
 
   const toggleDocument = (id: string) => {
@@ -87,6 +76,7 @@ export default function SearchPage() {
           {askMutation.isPending ? "Searching..." : "Ask"}
         </button>
       </form>
+
       <div className="checkbox-group">
         <label>
           <input
